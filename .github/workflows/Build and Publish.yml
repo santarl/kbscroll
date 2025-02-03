@@ -28,7 +28,7 @@ jobs:
     - name: Compress with UPX
       run: |
         choco install upx  # Install UPX using Chocolatey
-        upx --best --lzma target/release/kbscroll.exe  # Compress the executable
+        upx --best --lzma target/release/kbscroll.exe -o target/release/kbscroll_tiny.exe  # Compress the executable and rename it
 
     - name: Create Release
       id: create_release
@@ -41,10 +41,18 @@ jobs:
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-    - name: Upload Release Asset
+    - name: Upload Release Assets
       uses: actions/upload-release-asset@v1
       with:
         upload_url: ${{ steps.create_release.outputs.upload_url }}
         asset_path: target/release/kbscroll.exe
         asset_name: kbscroll.exe
+        asset_content_type: application/octet-stream
+
+    - name: Upload UPX Compressed Asset
+      uses: actions/upload-release-asset@v1
+      with:
+        upload_url: ${{ steps.create_release.outputs.upload_url }}
+        asset_path: target/release/kbscroll_tiny.exe
+        asset_name: kbscroll_tiny.exe
         asset_content_type: application/octet-stream
