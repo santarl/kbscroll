@@ -11,6 +11,10 @@ on:
 env:
   CARGO_TERM_COLOR: always
 
+permissions:
+  contents: write  # Required to create releases
+  actions: read    # Required to use actions
+
 jobs:
   build_and_release:
     runs-on: windows-latest
