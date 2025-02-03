@@ -27,7 +27,7 @@ fn scroll_mouse(amount: i32) {
 
 fn main() {
     if env::args().len() != 2 {
-        eprintln!("Usage: scroll_mouse <amount>");
+        eprintln!("Usage: kbscroll <amount>");
         std::process::exit(1);
     }
 
