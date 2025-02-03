@@ -2,14 +2,16 @@ name: Build and Publish
 
 on:
   push:
-    branches: [ "main" ]
     tags: [ 'v*' ]
-  pull_request:
-    branches: [ "main" ]
   workflow_dispatch:
-  
+
 env:
   CARGO_TERM_COLOR: always
+  RUSTFLAGS: "-Zlocation-detail=none -Zfmt-debug=none"
+  TARGET: x86_64-pc-windows-msvc
+  TOOLCHAIN: nightly
+  BUILD_STD: "std,panic_abort"
+  BUILD_STD_FEATURES: "optimize_for_size,panic_immediate_abort"
 
 permissions:
   contents: write  # Required to create releases
@@ -22,37 +24,51 @@ jobs:
     steps:
     - uses: actions/checkout@v4
 
-    - name: Build Release
-      run: cargo build --release --verbose
+    - name: Set up Rust toolchain (nightly)
+      run: |
+        rustup toolchain install $env:TOOLCHAIN
+        rustup component add rust-src --toolchain $env:TOOLCHAIN
+
+    - name: Build with RUSTFLAGS, nightly toolchain, and cross-compilation
+      run: |
+        cargo +$env:TOOLCHAIN build -Z build-std=$env:BUILD_STD -Z build-std-features=$env:BUILD_STD_FEATURES --target $env:TARGET --release
 
     - name: Compress with UPX
       run: |
+        $BUILD_DIR = "target\$env:TARGET\release"
         choco install upx  # Install UPX using Chocolatey
-        upx --best --lzma target/release/kbscroll.exe -o target/release/kbscroll_tiny.exe  # Compress the executable and rename it
+        mv $BUILD_DIR\kbscroll.exe $BUILD_DIR\kbscroll_big.exe
+        upx --best --lzma $BUILD_DIR\kbscroll_big.exe -o $BUILD_DIR\kbscroll.exe  # Compress the executable and rename it
 
-    - name: Create Release
-      id: create_release
-      uses: actions/create-release@v1
+    - name: Calculate SHA-256 Checksums
+      run: |
+        $BUILD_DIR = "target\$env:TARGET\release"
+        $kbscroll_sha = (certutil -hashfile $BUILD_DIR\kbscroll.exe SHA256 | findstr /v "hash of")
+        $kbscroll_sha | Out-File -FilePath kbscroll_sha256.txt
+        
+        $kbscroll_big_sha = (certutil -hashfile $BUILD_DIR\kbscroll_big.exe SHA256 | findstr /v "hash of")
+        $kbscroll_big_sha | Out-File -FilePath kbscroll_big_sha256.txt
+
+    - name: Get Release Version
+      id: get_version
+      run: |
+        $VERSION = (Select-String '^version =' Cargo.toml).Line.Split('"')[1]
+        echo "RELEASE_NAME=Release $VERSION Latest" >> $env:GITHUB_ENV
+
+    - name: Create Release and Upload Assets
+      uses: softprops/action-gh-release@v2
       with:
         tag_name: ${{ github.ref_name }}  # Use github.ref_name to get the tag name without refs/tags/
-        release_name: Release ${{ github.ref_name }}
+        name: ${{ env.RELEASE_NAME }}  # Use the environment variable for the release name
         draft: false
         prerelease: false
+        generate_release_notes: true
+        body: |
+          The \`kbscroll.exe\` version has been compressed with UPX for a smaller file size. However, this might cause it to be flagged by some antivirus programs. If you experience issues, please use the non-compressed \`kbscroll_big.exe\` version.
+        files: |
+          target/${{ env.TARGET }}/release/kbscroll.exe
+          target/${{ env.TARGET }}/release/kbscroll_big.exe
+          kbscroll_sha256.txt
+          kbscroll_big_sha256.txt
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-    - name: Upload Release Assets
-      uses: actions/upload-release-asset@v1
-      with:
-        upload_url: ${{ steps.create_release.outputs.upload_url }}
-        asset_path: target/release/kbscroll.exe
-        asset_name: kbscroll.exe
-        asset_content_type: application/octet-stream
-
-    - name: Upload UPX Compressed Asset
-      uses: actions/upload-release-asset@v1
-      with:
-        upload_url: ${{ steps.create_release.outputs.upload_url }}
-        asset_path: target/release/kbscroll_tiny.exe
-        asset_name: kbscroll_tiny.exe
-        asset_content_type: application/octet-stream
