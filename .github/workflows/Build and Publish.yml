@@ -12,22 +12,20 @@ env:
   CARGO_TERM_COLOR: always
 
 jobs:
-  build:
+  build_and_release:
     runs-on: windows-latest
 
     steps:
     - uses: actions/checkout@v4
-    - name: Build
-      run: cargo build --verbose
-    - name: Run tests
-      run: cargo test --verbose
 
-  release:
-    runs-on: windows-latest
-    needs: build
+    - name: Build Release
+      run: cargo build --release --verbose
 
-    steps:
-    - uses: actions/checkout@v4
+    - name: Compress with UPX
+      run: |
+        choco install upx  # Install UPX using Chocolatey
+        upx --best --lzma target/release/kbscroll.exe  # Compress the executable
+
     - name: Create Release
       id: create_release
       uses: actions/create-release@v1
@@ -38,14 +36,6 @@ jobs:
         prerelease: false
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-    - name: Build Release
-      run: cargo build --release --verbose
-
-    - name: Compress with UPX
-      run: |
-        choco install upx  # Install UPX using Chocolatey
-        upx --best --lzma target/release/kbscroll.exe  # Compress the executable
 
     - name: Upload Release Asset
       uses: actions/upload-release-asset@v1
