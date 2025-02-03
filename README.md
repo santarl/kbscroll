@@ -15,9 +15,13 @@ scoop bucket add santarl_scoop_bucket https://github.com/santarl/scoop_bucket ;
 scoop install santarl_scoop_bucket/kbscroll
 ```
 
+or
+
+download [kbscroll.exe](https://github.com/santarl/kbscroll/releases/download/main/kbscroll.exe) from [releases](https://github.com/santarl/kbscroll/releases)
+
 ## Usage
 
-To use `kbscroll`, simply run the following command:
+To use `kbscroll`, run in terminal:
 
 ```sh
 kbscroll <amount>
