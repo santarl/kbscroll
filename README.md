@@ -2,6 +2,10 @@
 
 `kbscroll` is a tiny (<20kb) utility written in Rust that allows you to send mousewheel scroll events through the terminal.
 
+## Features
+- Tiny
+- Inertial Scrolling // TODO
+- Horizontal Scrolling // TODO
 
 ## Installation
 
@@ -26,8 +30,6 @@ To use `kbscroll`, run in terminal:
 ```sh
 kbscroll <amount>
 ```
-
-Add to your favourite hotkey daemon. I added it to my tilind window manager settings (glazewm) but if u want something independant you can use [wkhd](https://github.com/LGUG2Z/whkd)
 
 ## Why?
 
