@@ -1,4 +1,3 @@
-#![windows_subsystem = "windows"]
 extern crate winapi;
 
 use std::env;
