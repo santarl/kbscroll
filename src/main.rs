@@ -29,14 +29,23 @@ fn scroll_mouse(amount: i32) {
 }
 
 fn main() {
-    if env::args().len() != 2 {
-        eprintln!("Usage: kbscroll <amount>");
+    let args: Vec<String> = env::args().collect();
+
+    if args.len() != 3 {
+        eprintln!("Usage: kbscroll.exe scroll [amount]");
         std::process::exit(1);
     }
 
-    let arg = env::args().nth(1).unwrap();
-    let amount =
-        i32::from_str(&arg).expect("Please provide a valid integer for the scroll amount.");
+    let command = &args[1];
+    let amount_str = &args[2];
 
-    scroll_mouse(amount);
+    if command == "scroll" {
+        let amount = i32::from_str(amount_str)
+            .expect("Please provide a valid integer for the scroll amount.");
+        scroll_mouse(amount);
+    } else {
+        eprintln!("Unknown command: {}", command);
+        eprintln!("Usage: kbscroll.exe scroll [amount]");
+        std::process::exit(1);
+    }
 }
