@@ -94,51 +94,79 @@ fn click_right(times: u32) {
 // Macro to define commands and aliases
 macro_rules! commands {
     (
-        $(
-            $name:ident => [$($alias:expr),+] => $action:expr;
-        )*
+        $( $name:ident => [$($alias:expr),+] => $action:expr; $desc:expr; )*
     ) => {
-        fn print_usage() {
-            eprintln!("Usage:");
+        const COMMANDS: &[(&str, &[&str], fn(i32), &str)] = &[
             $(
-                eprintln!("  kbscroll.exe {} [{}]", stringify!($name), vec![$($alias),+].join(", "));
+                (stringify!($name), &[$($alias),+], $action, $desc),
             )*
-            std::process::exit(1);
-        }
-
-        fn execute_command(command: &str, value: i32) {
-            match command {
-                $(
-                    $(
-                        $alias => $action(value),
-                    )+
-                )*
-                _ => print_usage(),
-            }
-        }
-    }
+        ];
+    };
 }
 
-// Define the commands using the macro
+// Define commands using the macro
 commands! {
-    scroll => ["scroll", "wheel", "sc", "wh"] => |v| scroll_mouse(v);
-    click_left => ["click_left", "lclick", "lc", "c1"] => |v| click_left(v as u32);
-    click_right => ["click_right", "rclick", "rc", "c2"] => |v| click_right(v as u32);
-    click_middle => ["click_middle", "mclick", "mc", "c3"] => |v| click_middle(v as u32);
+    scroll => ["scroll", "wheel", "sc", "wh"] => |v| scroll_mouse(v); "Scroll the mouse wheel up (+) or down (-) by the specified amount.";
+    click_left => ["click_left", "lclick", "lc", "c1"] => |v| click_left(v as u32); "Perform left mouse clicks the specified number of times.";
+    click_right => ["click_right", "rclick", "rc", "c2"] => |v| click_right(v as u32); "Perform right mouse clicks the specified number of times.";
+    click_middle => ["click_middle", "mclick", "mc", "c3"] => |v| click_middle(v as u32); "Perform middle mouse clicks the specified number of times.";
+}
+
+// Helper functions moved **outside** of the macro for proper scope resolution
+fn print_usage() {
+    eprintln!("Usage:");
+    for (name, _, _, _) in COMMANDS {
+        eprintln!("  kbscroll.exe {} amount", name);
+    }
+    eprintln!("use: kbscroll.exe help command_name for extended help");
+    std::process::exit(1);
+}
+
+fn print_help(command: &str) {
+    for (name, aliases, _, desc) in COMMANDS {
+        if aliases.contains(&command) {
+            eprintln!("Command: {}", name);
+            eprintln!("Aliases: [{}]", aliases.join(", "));
+            eprintln!("Description: {}", desc);
+            eprintln!("Usage: kbscroll.exe {} amount", name);
+            return;
+        }
+    }
+    eprintln!("Unknown command: {}", command);
+    std::process::exit(1);
+}
+
+fn execute_command(command: &str, value: i32) {
+    for (_, aliases, action, _) in COMMANDS {
+        if aliases.contains(&command) {
+            action(value);
+            return;
+        }
+    }
+    print_usage();
 }
 
 fn main() {
     let args: Vec<String> = env::args().collect();
 
-    if args.len() != 3 {
+    if args.len() < 2 {
         print_usage();
     }
 
     let command = &args[1];
-    let value_str = &args[2];
 
-    let value = i32::from_str(value_str)
-        .expect("Please provide a valid integer for the amount or number of clicks.");
-
-    execute_command(command, value);
+    if command == "help" {
+        if args.len() != 3 {
+            eprintln!("Usage: kbscroll.exe help function_name");
+            std::process::exit(1);
+        }
+        print_help(&args[2]);
+    } else if args.len() == 3 {
+        let value_str = &args[2];
+        let value = i32::from_str(value_str)
+            .expect("Please provide a valid integer for the amount or number of clicks.");
+        execute_command(command, value);
+    } else {
+        print_usage();
+    }
 }
