@@ -5,9 +5,9 @@ use std::str::FromStr;
 use std::thread::sleep;
 use std::time::Duration;
 use winapi::um::winuser::{
-    SendInput, INPUT, INPUT_MOUSE, MOUSEEVENTF_WHEEL, MOUSEEVENTF_LEFTDOWN, MOUSEEVENTF_LEFTUP,
+    SendInput, INPUT, INPUT_MOUSE, MOUSEEVENTF_LEFTDOWN, MOUSEEVENTF_LEFTUP,
     MOUSEEVENTF_MIDDLEDOWN, MOUSEEVENTF_MIDDLEUP, MOUSEEVENTF_RIGHTDOWN, MOUSEEVENTF_RIGHTUP,
-    MOUSEINPUT,
+    MOUSEEVENTF_WHEEL, MOUSEINPUT,
 };
 
 fn scroll_mouse(amount: i32) {
@@ -94,16 +94,20 @@ fn click_right(times: u32) {
     click_mouse(MOUSEEVENTF_RIGHTDOWN, MOUSEEVENTF_RIGHTUP, times);
 }
 
+fn print_usage() {
+    eprintln!("Usage:");
+    eprintln!("  kbscroll.exe scroll [amount]");
+    eprintln!("  kbscroll.exe click_left [times]");
+    eprintln!("  kbscroll.exe click_middle [times]");
+    eprintln!("  kbscroll.exe click_right [times]");
+    std::process::exit(1);
+}
+
 fn main() {
     let args: Vec<String> = env::args().collect();
 
     if args.len() != 3 {
-        eprintln!("Usage:");
-        eprintln!("  kbscroll.exe scroll [amount]");
-        eprintln!("  kbscroll.exe click_left [times]");
-        eprintln!("  kbscroll.exe click_middle [times]");
-        eprintln!("  kbscroll.exe click_right [times]");
-        std::process::exit(1);
+        print_usage()
     }
 
     let command = &args[1];
@@ -113,18 +117,12 @@ fn main() {
         .expect("Please provide a valid integer for the amount or number of clicks.");
 
     match command.as_str() {
-        "scroll" => scroll_mouse(value),
-        "click_left" => click_left(value as u32),
-        "click_middle" => click_middle(value as u32),
-        "click_right" => click_right(value as u32),
+        "scroll" | "wheel" | "sc" | "wh" => scroll_mouse(value),
+        "click_left" | "lclick" | "lc" | "c1" => click_left(value as u32),
+        "click_right" | "rclick" | "rc" | "c2" => click_right(value as u32),
+        "click_middle" | "mclick" | "mc" | "c3" => click_middle(value as u32),
         _ => {
-            eprintln!("Unknown command: {}", command);
-            eprintln!("Usage:");
-            eprintln!("  kbscroll.exe scroll [amount]");
-            eprintln!("  kbscroll.exe click_left [times]");
-            eprintln!("  kbscroll.exe click_middle [times]");
-            eprintln!("  kbscroll.exe click_right [times]");
-            std::process::exit(1);
+            print_usage();
         }
     }
 }
