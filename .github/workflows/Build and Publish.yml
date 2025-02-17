@@ -33,21 +33,11 @@ jobs:
       run: |
         cargo +$env:TOOLCHAIN build -Z build-std=$env:BUILD_STD -Z build-std-features=$env:BUILD_STD_FEATURES --target $env:TARGET --release
 
-    - name: Compress with UPX
-      run: |
-        $BUILD_DIR = "target\$env:TARGET\release"
-        choco install upx  # Install UPX using Chocolatey
-        # mv $BUILD_DIR\kbscroll.exe $BUILD_DIR\kbscroll_big.exe
-        # upx --best --lzma $BUILD_DIR\kbscroll_big.exe -o $BUILD_DIR\kbscroll.exe  # Compress the executable and rename it
-
     - name: Calculate SHA-256 Checksums
       run: |
         $BUILD_DIR = "target\$env:TARGET\release"
         $kbscroll_sha = (certutil -hashfile $BUILD_DIR\kbscroll.exe SHA256 | findstr /v "hash of")
         $kbscroll_sha | Out-File -FilePath kbscroll_sha256.txt
-        
-        # $kbscroll_big_sha = (certutil -hashfile $BUILD_DIR\kbscroll_big.exe SHA256 | findstr /v "hash of")
-        # $kbscroll_big_sha | Out-File -FilePath kbscroll_big_sha256.txt
 
     - name: Get Release Version
       id: get_version
@@ -63,8 +53,7 @@ jobs:
         draft: false
         prerelease: false
         generate_release_notes: true
-        body: |
-          # The \`kbscroll.exe\` version has been compressed with UPX for a smaller file size. However, this might cause it to be flagged by some antivirus programs. If you experience issues, please use the non-compressed \`kbscroll_big.exe\` version.
+        body: ≽^•⩊•^≼
         files: |
           target/${{ env.TARGET }}/release/kbscroll.exe
           # target/${{ env.TARGET }}/release/kbscroll_big.exe
