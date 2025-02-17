@@ -1,5 +1,3 @@
-extern crate winapi;
-
 use std::env;
 use std::str::FromStr;
 use std::thread::sleep;
@@ -77,7 +75,6 @@ fn click_mouse(button_down: u32, button_up: u32, times: u32) {
             );
         }
 
-        // Small delay between clicks to simulate human behavior
         sleep(Duration::from_millis(100));
     }
 }
@@ -94,20 +91,47 @@ fn click_right(times: u32) {
     click_mouse(MOUSEEVENTF_RIGHTDOWN, MOUSEEVENTF_RIGHTUP, times);
 }
 
-fn print_usage() {
-    eprintln!("Usage:");
-    eprintln!("  kbscroll.exe scroll [amount]");
-    eprintln!("  kbscroll.exe click_left [times]");
-    eprintln!("  kbscroll.exe click_middle [times]");
-    eprintln!("  kbscroll.exe click_right [times]");
-    std::process::exit(1);
+// Macro to define commands and aliases
+macro_rules! commands {
+    (
+        $(
+            $name:ident => [$($alias:expr),+] => $action:expr;
+        )*
+    ) => {
+        fn print_usage() {
+            eprintln!("Usage:");
+            $(
+                eprintln!("  kbscroll.exe {} [{}]", stringify!($name), vec![$($alias),+].join(", "));
+            )*
+            std::process::exit(1);
+        }
+
+        fn execute_command(command: &str, value: i32) {
+            match command {
+                $(
+                    $(
+                        $alias => $action(value),
+                    )+
+                )*
+                _ => print_usage(),
+            }
+        }
+    }
+}
+
+// Define the commands using the macro
+commands! {
+    scroll => ["scroll", "wheel", "sc", "wh"] => |v| scroll_mouse(v);
+    click_left => ["click_left", "lclick", "lc", "c1"] => |v| click_left(v as u32);
+    click_right => ["click_right", "rclick", "rc", "c2"] => |v| click_right(v as u32);
+    click_middle => ["click_middle", "mclick", "mc", "c3"] => |v| click_middle(v as u32);
 }
 
 fn main() {
     let args: Vec<String> = env::args().collect();
 
     if args.len() != 3 {
-        print_usage()
+        print_usage();
     }
 
     let command = &args[1];
@@ -116,13 +140,5 @@ fn main() {
     let value = i32::from_str(value_str)
         .expect("Please provide a valid integer for the amount or number of clicks.");
 
-    match command.as_str() {
-        "scroll" | "wheel" | "sc" | "wh" => scroll_mouse(value),
-        "click_left" | "lclick" | "lc" | "c1" => click_left(value as u32),
-        "click_right" | "rclick" | "rc" | "c2" => click_right(value as u32),
-        "click_middle" | "mclick" | "mc" | "c3" => click_middle(value as u32),
-        _ => {
-            print_usage();
-        }
-    }
+    execute_command(command, value);
 }
