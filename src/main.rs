@@ -3,7 +3,7 @@ extern crate winapi;
 
 use std::env;
 use std::str::FromStr;
-use winapi::um::winuser::{SendInput, INPUT, MOUSEINPUT, INPUT_MOUSE, MOUSEEVENTF_WHEEL};
+use winapi::um::winuser::{SendInput, INPUT, INPUT_MOUSE, MOUSEEVENTF_WHEEL, MOUSEINPUT};
 
 fn scroll_mouse(amount: i32) {
     let mouse_input = MOUSEINPUT {
@@ -21,7 +21,11 @@ fn scroll_mouse(amount: i32) {
     };
 
     unsafe {
-        SendInput(1, &input as *const _ as *mut INPUT, std::mem::size_of::<INPUT>() as i32);
+        SendInput(
+            1,
+            &input as *const _ as *mut INPUT,
+            std::mem::size_of::<INPUT>() as i32,
+        );
     }
 }
 
@@ -32,7 +36,8 @@ fn main() {
     }
 
     let arg = env::args().nth(1).unwrap();
-    let amount = i32::from_str(&arg).expect("Please provide a valid integer for the scroll amount.");
+    let amount =
+        i32::from_str(&arg).expect("Please provide a valid integer for the scroll amount.");
 
     scroll_mouse(amount);
 }
