@@ -3,7 +3,7 @@ use std::str::FromStr;
 use std::thread::sleep;
 use std::time::Duration;
 use winapi::um::winuser::{
-    SendInput, INPUT, INPUT_MOUSE, MOUSEEVENTF_LEFTDOWN, MOUSEEVENTF_LEFTUP,
+    SendInput, INPUT, INPUT_MOUSE, MOUSEEVENTF_HWHEEL, MOUSEEVENTF_LEFTDOWN, MOUSEEVENTF_LEFTUP,
     MOUSEEVENTF_MIDDLEDOWN, MOUSEEVENTF_MIDDLEUP, MOUSEEVENTF_RIGHTDOWN, MOUSEEVENTF_RIGHTUP,
     MOUSEEVENTF_WHEEL, MOUSEEVENTF_XDOWN, MOUSEEVENTF_XUP, MOUSEINPUT,
 };
@@ -11,12 +11,18 @@ use winapi::um::winuser::{
 const XBUTTON1: u32 = 0x0001;
 const XBUTTON2: u32 = 0x0002;
 
-fn scroll_mouse(amount: i32) {
+fn scroll_mouse(amount: i32, horizontal: bool) {
+    let dw_flags = if horizontal {
+        MOUSEEVENTF_HWHEEL
+    } else {
+        MOUSEEVENTF_WHEEL
+    };
+
     let mouse_input = MOUSEINPUT {
         dx: 0,
         dy: 0,
         mouseData: amount as u32,
-        dwFlags: MOUSEEVENTF_WHEEL,
+        dwFlags: dw_flags,
         time: 0,
         dwExtraInfo: 0,
     };
@@ -117,7 +123,8 @@ macro_rules! commands {
 
 // Define commands using the macro
 commands! {
-    scroll => ["scroll", "wheel", "sc", "wh"] => |v| scroll_mouse(v); "Scroll the mouse wheel up (+) or down (-) by the specified amount.";
+    scroll => ["scroll", "wheel", "sc", "wh", "vs", "s1"] => |v| scroll_mouse(v, false); "Scroll the mouse wheel up (+) or down (-) by the specified amount.";
+    scroll_horizontal => ["scroll_horizontal", "hwheel", "sch", "whw", "hs", "s2"] => |v| scroll_mouse(v, true); "Scroll the mouse wheel left (-) or right (+) by the specified amount.";
     click_left => ["click_left", "lclick", "lc", "c1"] => |v| click_left(v as u32); "Perform left mouse clicks the specified number of times.";
     click_right => ["click_right", "rclick", "rc", "c2"] => |v| click_right(v as u32); "Perform right mouse clicks the specified number of times.";
     click_middle => ["click_middle", "mclick", "mc", "c3"] => |v| click_middle(v as u32); "Perform middle mouse clicks the specified number of times.";
