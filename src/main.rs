@@ -43,48 +43,33 @@ fn scroll_mouse(amount: i32, horizontal: bool) {
 
 fn click_mouse_button(button_down: u32, button_up: u32, mouse_data: u32, times: u32) {
     for _ in 0..times {
-        let mouse_down = MOUSEINPUT {
-            dx: 0,
-            dy: 0,
-            mouseData: mouse_data,
-            dwFlags: button_down,
-            time: 0,
-            dwExtraInfo: 0,
-        };
-
-        let mouse_up = MOUSEINPUT {
-            dx: 0,
-            dy: 0,
-            mouseData: mouse_data,
-            dwFlags: button_up,
-            time: 0,
-            dwExtraInfo: 0,
-        };
-
-        let input_down = INPUT {
-            type_: INPUT_MOUSE,
-            u: unsafe { std::mem::transmute(mouse_down) },
-        };
-
-        let input_up = INPUT {
-            type_: INPUT_MOUSE,
-            u: unsafe { std::mem::transmute(mouse_up) },
-        };
-
-        unsafe {
-            SendInput(
-                1,
-                &input_down as *const _ as *mut INPUT,
-                std::mem::size_of::<INPUT>() as i32,
-            );
-            SendInput(
-                1,
-                &input_up as *const _ as *mut INPUT,
-                std::mem::size_of::<INPUT>() as i32,
-            );
-        }
-
+        mouse_event(button_down, mouse_data);
+        mouse_event(button_up, mouse_data);
         sleep(Duration::from_millis(100));
+    }
+}
+
+fn mouse_event(event: u32, mouse_data: u32) {
+    let mouse_input = MOUSEINPUT {
+        dx: 0,
+        dy: 0,
+        mouseData: mouse_data,
+        dwFlags: event,
+        time: 0,
+        dwExtraInfo: 0,
+    };
+
+    let input = INPUT {
+        type_: INPUT_MOUSE,
+        u: unsafe { std::mem::transmute(mouse_input) },
+    };
+
+    unsafe {
+        SendInput(
+            1,
+            &input as *const _ as *mut INPUT,
+            std::mem::size_of::<INPUT>() as i32,
+        );
     }
 }
 
@@ -111,11 +96,18 @@ fn click_forward(times: u32) {
 // Macro to define commands and aliases
 macro_rules! commands {
     (
-        $( $name:ident => [$($alias:expr),+] => $action:expr; $desc:expr; )*
+        $( $name:ident => [$($alias:expr),+] => $action:expr, $down_action:expr, $up_action:expr; $desc:expr; )*
     ) => {
-        const COMMANDS: &[(&str, &[&str], fn(i32), &str)] = &[
+        const COMMANDS: &[(&str, &[&str], fn(i32), fn(), fn(), &str)] = &[
             $(
-                (stringify!($name), &[$($alias),+], $action, $desc),
+                (
+                    stringify!($name), // This converts the function name to a string
+                    &[$($alias),+],
+                    $action,
+                    $down_action,
+                    $up_action,
+                    $desc
+                ),
             )*
         ];
     };
@@ -123,27 +115,47 @@ macro_rules! commands {
 
 // Define commands using the macro
 commands! {
-    scroll => ["scroll", "wheel", "sc", "wh", "vs", "s1"] => |v| scroll_mouse(v, false); "Scroll the mouse wheel up (+) or down (-) by the specified amount.";
-    scroll_horizontal => ["scroll_horizontal", "hwheel", "sch", "whw", "hs", "s2"] => |v| scroll_mouse(v, true); "Scroll the mouse wheel left (-) or right (+) by the specified amount.";
-    click_left => ["click_left", "lclick", "lc", "c1"] => |v| click_left(v as u32); "Perform left mouse clicks the specified number of times.";
-    click_right => ["click_right", "rclick", "rc", "c2"] => |v| click_right(v as u32); "Perform right mouse clicks the specified number of times.";
-    click_middle => ["click_middle", "mclick", "mc", "c3"] => |v| click_middle(v as u32); "Perform middle mouse clicks the specified number of times.";
-    click_back => ["click_back", "back", "cb", "c4", "x1"] => |v| click_back(v as u32); "Simulate the browser's back button the specified number of times.";
-    click_forward => ["click_forward", "forward", "cf", "c5", "x2"] => |v| click_forward(v as u32); "Simulate the browser's forward button the specified number of times.";
+    scroll => ["scroll", "wheel", "sc", "wh", "vs", "s1"] => |v| scroll_mouse(v, false), || {}, || {}; "Scroll the mouse wheel up (+) or down (-) by the specified amount.";
+    scroll_horizontal => ["scroll_horizontal", "hwheel", "sch", "whw", "hs", "s2"] => |v| scroll_mouse(v, true), || {}, || {}; "Scroll the mouse wheel left (-) or right (+) by the specified amount.";
+    click_left => ["click_left", "lclick", "lc", "c1"] => |v| click_left(v as u32), || mouse_event(MOUSEEVENTF_LEFTDOWN, 0), || mouse_event(MOUSEEVENTF_LEFTUP, 0); "Perform left mouse clicks the specified number of times.";
+    click_right => ["click_right", "rclick", "rc", "c2"] => |v| click_right(v as u32), || mouse_event(MOUSEEVENTF_RIGHTDOWN, 0), || mouse_event(MOUSEEVENTF_RIGHTUP, 0); "Perform right mouse clicks the specified number of times.";
+    click_middle => ["click_middle", "mclick", "mc", "c3"] => |v| click_middle(v as u32), || mouse_event(MOUSEEVENTF_MIDDLEDOWN, 0), || mouse_event(MOUSEEVENTF_MIDDLEUP, 0); "Perform middle mouse clicks the specified number of times.";
+    click_back => ["click_back", "back", "cb", "c4", "x1"] => |v| click_back(v as u32), || mouse_event(MOUSEEVENTF_XDOWN, XBUTTON1), || mouse_event(MOUSEEVENTF_XUP, XBUTTON1); "Simulate the browser's back button the specified number of times.";
+    click_forward => ["click_forward", "forward", "cf", "c5", "x2"] => |v| click_forward(v as u32), || mouse_event(MOUSEEVENTF_XDOWN, XBUTTON2), || mouse_event(MOUSEEVENTF_XUP, XBUTTON2); "Simulate the browser's forward button the specified number of times.";
 }
 
-// Helper functions moved **outside** of the macro for proper scope resolution
+fn execute_command(command: &str, value: i32, modifier: Option<&str>) {
+    let is_down = modifier == Some("+");
+    let is_up = modifier == Some("-");
+
+    let base_command = command.trim_end_matches(&['+', '-'][..]);
+
+    for (_, aliases, action, down_action, up_action, _) in COMMANDS {
+        if aliases.contains(&base_command) {
+            if is_down {
+                down_action();
+            } else if is_up {
+                up_action();
+            } else {
+                action(value);
+            }
+            return;
+        }
+    }
+    print_usage();
+}
+
 fn print_usage() {
     eprintln!("Usage:");
-    for (name, _, _, _) in COMMANDS {
+    for (name, _, _, _, _, _) in COMMANDS {
         eprintln!("  kbscroll.exe {} amount", name);
     }
-    eprintln!("use: kbscroll.exe help command_name for extended help");
+    eprintln!("Use: kbscroll.exe help command_name for extended help");
     std::process::exit(1);
 }
 
 fn print_help(command: &str) {
-    for (name, aliases, _, desc) in COMMANDS {
+    for (name, aliases, _, _, _, desc) in COMMANDS {
         if aliases.contains(&command) {
             eprintln!("Command: {}", name);
             eprintln!("Aliases: [{}]", aliases.join(", "));
@@ -154,16 +166,6 @@ fn print_help(command: &str) {
     }
     eprintln!("Unknown command: {}", command);
     std::process::exit(1);
-}
-
-fn execute_command(command: &str, value: i32) {
-    for (_, aliases, action, _) in COMMANDS {
-        if aliases.contains(&command) {
-            action(value);
-            return;
-        }
-    }
-    print_usage();
 }
 
 fn main() {
@@ -181,12 +183,28 @@ fn main() {
             std::process::exit(1);
         }
         print_help(&args[2]);
-    } else if args.len() == 3 {
-        let value_str = &args[2];
-        let value = i32::from_str(value_str)
-            .expect("Please provide a valid integer for the amount or number of clicks.");
-        execute_command(command, value);
     } else {
-        print_usage();
+        let modifier = if args.len() == 4 {
+            let modifier_str = &args[3];
+            if modifier_str == "+" || modifier_str == "-" {
+                Some(modifier_str)
+            } else {
+                None
+            }
+        } else {
+            None
+        };
+
+        let value = match args.get(2) {
+            Some(value_str) if modifier.is_none() => {
+                i32::from_str(value_str).unwrap_or_else(|_| {
+                    eprintln!("Please provide a valid integer for the amount or number of clicks.");
+                    std::process::exit(1);
+                })
+            },
+            _ => 1,
+        };
+
+        execute_command(command, value, modifier.map(|x| x.as_str()));
     }
 }

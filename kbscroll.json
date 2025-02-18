@@ -1,5 +1,5 @@
 {
-    "version": "0.3.0",
+    "version": "0.3.1",
     "description": "kbscroll is a tiny utility written in Rust that allows you to send scroll events through the terminal using winapi",
     "homepage": "https://github.com/santarl/kbscroll",
     "license": "MIT",
