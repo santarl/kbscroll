@@ -5,8 +5,11 @@ use std::time::Duration;
 use winapi::um::winuser::{
     SendInput, INPUT, INPUT_MOUSE, MOUSEEVENTF_LEFTDOWN, MOUSEEVENTF_LEFTUP,
     MOUSEEVENTF_MIDDLEDOWN, MOUSEEVENTF_MIDDLEUP, MOUSEEVENTF_RIGHTDOWN, MOUSEEVENTF_RIGHTUP,
-    MOUSEEVENTF_WHEEL, MOUSEINPUT,
+    MOUSEEVENTF_WHEEL, MOUSEEVENTF_XDOWN, MOUSEEVENTF_XUP, MOUSEINPUT,
 };
+
+const XBUTTON1: u32 = 0x0001;
+const XBUTTON2: u32 = 0x0002;
 
 fn scroll_mouse(amount: i32) {
     let mouse_input = MOUSEINPUT {
@@ -32,12 +35,12 @@ fn scroll_mouse(amount: i32) {
     }
 }
 
-fn click_mouse(button_down: u32, button_up: u32, times: u32) {
+fn click_mouse_button(button_down: u32, button_up: u32, mouse_data: u32, times: u32) {
     for _ in 0..times {
         let mouse_down = MOUSEINPUT {
             dx: 0,
             dy: 0,
-            mouseData: 0,
+            mouseData: mouse_data,
             dwFlags: button_down,
             time: 0,
             dwExtraInfo: 0,
@@ -46,7 +49,7 @@ fn click_mouse(button_down: u32, button_up: u32, times: u32) {
         let mouse_up = MOUSEINPUT {
             dx: 0,
             dy: 0,
-            mouseData: 0,
+            mouseData: mouse_data,
             dwFlags: button_up,
             time: 0,
             dwExtraInfo: 0,
@@ -80,15 +83,23 @@ fn click_mouse(button_down: u32, button_up: u32, times: u32) {
 }
 
 fn click_left(times: u32) {
-    click_mouse(MOUSEEVENTF_LEFTDOWN, MOUSEEVENTF_LEFTUP, times);
+    click_mouse_button(MOUSEEVENTF_LEFTDOWN, MOUSEEVENTF_LEFTUP, 0, times);
 }
 
 fn click_middle(times: u32) {
-    click_mouse(MOUSEEVENTF_MIDDLEDOWN, MOUSEEVENTF_MIDDLEUP, times);
+    click_mouse_button(MOUSEEVENTF_MIDDLEDOWN, MOUSEEVENTF_MIDDLEUP, 0, times);
 }
 
 fn click_right(times: u32) {
-    click_mouse(MOUSEEVENTF_RIGHTDOWN, MOUSEEVENTF_RIGHTUP, times);
+    click_mouse_button(MOUSEEVENTF_RIGHTDOWN, MOUSEEVENTF_RIGHTUP, 0, times);
+}
+
+fn click_back(times: u32) {
+    click_mouse_button(MOUSEEVENTF_XDOWN, MOUSEEVENTF_XUP, XBUTTON1, times);
+}
+
+fn click_forward(times: u32) {
+    click_mouse_button(MOUSEEVENTF_XDOWN, MOUSEEVENTF_XUP, XBUTTON2, times);
 }
 
 // Macro to define commands and aliases
@@ -110,6 +121,8 @@ commands! {
     click_left => ["click_left", "lclick", "lc", "c1"] => |v| click_left(v as u32); "Perform left mouse clicks the specified number of times.";
     click_right => ["click_right", "rclick", "rc", "c2"] => |v| click_right(v as u32); "Perform right mouse clicks the specified number of times.";
     click_middle => ["click_middle", "mclick", "mc", "c3"] => |v| click_middle(v as u32); "Perform middle mouse clicks the specified number of times.";
+    click_back => ["click_back", "back", "cb", "c4", "x1"] => |v| click_back(v as u32); "Simulate the browser's back button the specified number of times.";
+    click_forward => ["click_forward", "forward", "cf", "c5", "x2"] => |v| click_forward(v as u32); "Simulate the browser's forward button the specified number of times.";
 }
 
 // Helper functions moved **outside** of the macro for proper scope resolution
