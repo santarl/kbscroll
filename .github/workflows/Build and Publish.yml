@@ -43,7 +43,7 @@ jobs:
       id: get_version
       run: |
         $VERSION = (Select-String '^version =' Cargo.toml).Line.Split('"')[1]
-        echo "RELEASE_NAME=Release $VERSION Latest" >> $env:GITHUB_ENV
+        echo "RELEASE_NAME=Release $VERSION" >> $env:GITHUB_ENV
 
     - name: Create Release and Upload Assets
       uses: softprops/action-gh-release@v2
