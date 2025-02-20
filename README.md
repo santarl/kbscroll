@@ -1,9 +1,10 @@
 # kbscroll
 
-`kbscroll` is a tiny (<20kb) utility written in Rust that allows you to send mousewheel scroll events through the terminal.
+`kbscroll` is a tiny utility written in Rust that allows you to send mousewheel scroll events through the terminal using winapi.
 
 ## Features
 - Tiny
+- Send Clicks
 - Inertial Scrolling // TODO
 - Horizontal Scrolling // TODO
 
