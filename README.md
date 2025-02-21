@@ -5,8 +5,8 @@
 ## Features
 - Tiny
 - Send Clicks
+- Horizontal / Vertical Scrolling
 - Inertial Scrolling // TODO
-- Horizontal Scrolling // TODO
 
 ## Installation
 
