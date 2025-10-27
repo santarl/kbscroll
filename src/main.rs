@@ -93,15 +93,20 @@ fn click_forward(times: u32) {
     click_mouse_button(MOUSEEVENTF_XDOWN, MOUSEEVENTF_XUP, XBUTTON2, times);
 }
 
-// Macro to define commands and aliases
+# lord help me understand why i thought this was a good idea
 macro_rules! commands {
     (
-        $( $name:ident => [$($alias:expr),+] => $action:expr, $down_action:expr, $up_action:expr; $desc:expr; )*
+        $(
+            $name:ident =>
+            [$($alias:expr),+] =>
+            $action:expr, $down_action:expr, $up_action:expr;
+            $desc:expr;
+        )*
     ) => {
         const COMMANDS: &[(&str, &[&str], fn(i32), fn(), fn(), &str)] = &[
             $(
                 (
-                    stringify!($name), // This converts the function name to a string
+                    stringify!($name),
                     &[$($alias),+],
                     $action,
                     $down_action,
@@ -113,15 +118,34 @@ macro_rules! commands {
     };
 }
 
-// Define commands using the macro
 commands! {
-    scroll => ["scroll", "wheel", "sc", "wh", "vs", "s1"] => |v| scroll_mouse(v, false), || {}, || {}; "Scroll the mouse wheel up (+) or down (-) by the specified amount.";
-    scroll_horizontal => ["scroll_horizontal", "hwheel", "sch", "whw", "hs", "s2"] => |v| scroll_mouse(v, true), || {}, || {}; "Scroll the mouse wheel left (-) or right (+) by the specified amount.";
-    click_left => ["click_left", "lclick", "lc", "c1"] => |v| click_left(v as u32), || mouse_event(MOUSEEVENTF_LEFTDOWN, 0), || mouse_event(MOUSEEVENTF_LEFTUP, 0); "Perform left mouse clicks the specified number of times.";
-    click_right => ["click_right", "rclick", "rc", "c2"] => |v| click_right(v as u32), || mouse_event(MOUSEEVENTF_RIGHTDOWN, 0), || mouse_event(MOUSEEVENTF_RIGHTUP, 0); "Perform right mouse clicks the specified number of times.";
-    click_middle => ["click_middle", "mclick", "mc", "c3"] => |v| click_middle(v as u32), || mouse_event(MOUSEEVENTF_MIDDLEDOWN, 0), || mouse_event(MOUSEEVENTF_MIDDLEUP, 0); "Perform middle mouse clicks the specified number of times.";
-    click_back => ["click_back", "back", "cb", "c4", "x1"] => |v| click_back(v as u32), || mouse_event(MOUSEEVENTF_XDOWN, XBUTTON1), || mouse_event(MOUSEEVENTF_XUP, XBUTTON1); "Simulate the browser's back button the specified number of times.";
-    click_forward => ["click_forward", "forward", "cf", "c5", "x2"] => |v| click_forward(v as u32), || mouse_event(MOUSEEVENTF_XDOWN, XBUTTON2), || mouse_event(MOUSEEVENTF_XUP, XBUTTON2); "Simulate the browser's forward button the specified number of times.";
+    scroll => ["scroll", "wheel", "sc", "wh", "vs", "s1"] =>
+        |v| scroll_mouse(v, false), || {}, || {};
+        "Scroll the mouse wheel up (+) or down (-) by the specified amount.";
+
+    scroll_horizontal => ["scroll_horizontal", "hwheel", "sch", "whw", "hs", "s2"] =>
+        |v| scroll_mouse(v, true), || {}, || {};
+        "Scroll the mouse wheel left (-) or right (+) by the specified amount.";
+
+    click_left => ["click_left", "lclick", "lc", "c1"] =>
+        |v| click_left(v as u32), || mouse_event(MOUSEEVENTF_LEFTDOWN, 0), || mouse_event(MOUSEEVENTF_LEFTUP, 0);
+        "Perform left mouse clicks the specified number of times.";
+
+    click_right => ["click_right", "rclick", "rc", "c2"] =>
+        |v| click_right(v as u32), || mouse_event(MOUSEEVENTF_RIGHTDOWN, 0), || mouse_event(MOUSEEVENTF_RIGHTUP, 0);
+        "Perform right mouse clicks the specified number of times.";
+
+    click_middle => ["click_middle", "mclick", "mc", "c3"] =>
+        |v| click_middle(v as u32), || mouse_event(MOUSEEVENTF_MIDDLEDOWN, 0), || mouse_event(MOUSEEVENTF_MIDDLEUP, 0);
+        "Perform middle mouse clicks the specified number of times.";
+
+    click_back => ["click_back", "back", "cb", "c4", "x1"] =>
+        |v| click_back(v as u32), || mouse_event(MOUSEEVENTF_XDOWN, XBUTTON1), || mouse_event(MOUSEEVENTF_XUP, XBUTTON1);
+        "Simulate the browser's back button the specified number of times.";
+
+    click_forward => ["click_forward", "forward", "cf", "c5", "x2"] =>
+        |v| click_forward(v as u32), || mouse_event(MOUSEEVENTF_XDOWN, XBUTTON2), || mouse_event(MOUSEEVENTF_XUP, XBUTTON2);
+        "Simulate the browser's forward button the specified number of times.";
 }
 
 fn execute_command(command: &str, value: i32, modifier: Option<&str>) {
@@ -201,7 +225,7 @@ fn main() {
                     eprintln!("Please provide a valid integer for the amount or number of clicks.");
                     std::process::exit(1);
                 })
-            },
+            }
             _ => 1,
         };
 
