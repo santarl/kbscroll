@@ -20,6 +20,21 @@ jobs:
     steps:
     - name: Checkout repository
       uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+
+    - name: Cache Cargo dependencies
+      uses: actions/cache@v4
+      with:
+        path: |
+          ~/.cargo/bin/
+          ~/.cargo/registry/index/
+          ~/.cargo/registry/cache/
+          ~/.cargo/git/db/
+          target/
+        key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+        restore-keys: |
+          ${{ runner.os }}-cargo-
 
     - name: Run Build Script
       run: .\build.ps1
@@ -28,7 +43,6 @@ jobs:
     - name: Calculate SHA-256 Checksum
       run: |
         $BUILD_DIR = "target\${{ env.TARGET }}\release"
-        # This is a more robust way to get just the hash value from certutil
         $kbscroll_sha = (certutil -hashfile "$BUILD_DIR\kbscroll.exe" SHA256)[1].Trim()
         $kbscroll_sha | Out-File -FilePath kbscroll_sha256.txt
       shell: pwsh
@@ -39,16 +53,25 @@ jobs:
         $VERSION = (Select-String '^version =' Cargo.toml).Line.Split('"')[1]
         echo "RELEASE_NAME=Release $VERSION" >> $env:GITHUB_OUTPUT
       shell: pwsh
-      
+
+    - name: Get Release Notes from Git Tag
+      id: get_releasenotes
+      run: |
+        # This git command extracts the full body of the annotated tag's message
+        $TAG_BODY = git tag -l --format='%(contents)' ${{ github.ref_name }}
+        # This is a special format to handle multi-line strings in workflow outputs
+        echo "TAG_BODY<<EOF" >> $env:GITHUB_OUTPUT
+        echo "$TAG_BODY" >> $env:GITHUB_OUTPUT
+        echo "EOF" >> $env:GITHUB_OUTPUT
+      shell: pwsh
+
     - name: Create Release and Upload Assets
       uses: softprops/action-gh-release@v2
       with:
         tag_name: ${{ github.ref_name }}
         name: ${{ steps.get_version.outputs.RELEASE_NAME }}
-        draft: false
-        prerelease: false
+        body: ${{ steps.get_releasenotes.outputs.TAG_BODY }}
         generate_release_notes: true
-        body: ≽^•⩊•^≼
         files: |
           target/${{ env.TARGET }}/release/kbscroll.exe
           kbscroll_sha256.txt
