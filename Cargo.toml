@@ -1,6 +1,8 @@
+cargo-features = ["panic-immediate-abort"]
+
 [package]
 name = "kbscroll"
-version = "0.3.1"
+version = "0.3.2"
 edition = "2021"
 
 [dependencies]
@@ -11,4 +13,4 @@ strip = true
 opt-level = "z"
 lto = true
 codegen-units = 1
-panic = "abort"
+panic = "immediate-abort"

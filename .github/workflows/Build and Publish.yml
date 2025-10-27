@@ -7,57 +7,50 @@ on:
 
 env:
   CARGO_TERM_COLOR: always
-  RUSTFLAGS: "-Zlocation-detail=none -Zfmt-debug=none"
   TARGET: x86_64-pc-windows-msvc
-  TOOLCHAIN: nightly
-  BUILD_STD: "std,panic_abort"
-  BUILD_STD_FEATURES: "optimize_for_size,panic_immediate_abort"
 
 permissions:
-  contents: write  # Required to create releases
-  actions: read    # Required to use actions
+  contents: write
+  actions: read
 
 jobs:
   build_and_release:
     runs-on: windows-latest
 
     steps:
-    - uses: actions/checkout@v4
+    - name: Checkout repository
+      uses: actions/checkout@v4
 
-    - name: Set up Rust toolchain (nightly)
-      run: |
-        rustup toolchain install $env:TOOLCHAIN
-        rustup component add rust-src --toolchain $env:TOOLCHAIN
+    - name: Run Build Script
+      run: .\build.ps1
+      shell: pwsh
 
-    - name: Build with RUSTFLAGS, nightly toolchain, and cross-compilation
+    - name: Calculate SHA-256 Checksum
       run: |
-        cargo +$env:TOOLCHAIN build -Z build-std=$env:BUILD_STD -Z build-std-features=$env:BUILD_STD_FEATURES --target $env:TARGET --release
-
-    - name: Calculate SHA-256 Checksums
-      run: |
-        $BUILD_DIR = "target\$env:TARGET\release"
-        $kbscroll_sha = (certutil -hashfile $BUILD_DIR\kbscroll.exe SHA256 | findstr /v "hash of")
+        $BUILD_DIR = "target\${{ env.TARGET }}\release"
+        # This is a more robust way to get just the hash value from certutil
+        $kbscroll_sha = (certutil -hashfile "$BUILD_DIR\kbscroll.exe" SHA256)[1].Trim()
         $kbscroll_sha | Out-File -FilePath kbscroll_sha256.txt
+      shell: pwsh
 
     - name: Get Release Version
       id: get_version
       run: |
         $VERSION = (Select-String '^version =' Cargo.toml).Line.Split('"')[1]
-        echo "RELEASE_NAME=Release $VERSION" >> $env:GITHUB_ENV
-
+        echo "RELEASE_NAME=Release $VERSION" >> $env:GITHUB_OUTPUT
+      shell: pwsh
+      
     - name: Create Release and Upload Assets
       uses: softprops/action-gh-release@v2
       with:
-        tag_name: ${{ github.ref_name }}  # Use github.ref_name to get the tag name without refs/tags/
-        name: ${{ env.RELEASE_NAME }}  # Use the environment variable for the release name
+        tag_name: ${{ github.ref_name }}
+        name: ${{ steps.get_version.outputs.RELEASE_NAME }}
         draft: false
         prerelease: false
         generate_release_notes: true
         body: ≽^•⩊•^≼
         files: |
           target/${{ env.TARGET }}/release/kbscroll.exe
-          # target/${{ env.TARGET }}/release/kbscroll_big.exe
           kbscroll_sha256.txt
-          kbscroll_big_sha256.txt
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
